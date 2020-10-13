@@ -266,9 +266,15 @@ static int syncRetrieveLastWal(SSyncPeer *pPeer, char *name, uint64_t fversion, 
       break;
     }
 
-    sDebug("%s, last wal is forwarded, ver:%" PRIu64, pPeer->id, pHead->version);
-    int ret = taosWriteMsg(pPeer->syncFd, pHead, wsize);
-    if (ret != wsize) break;
+    if (pHead->version > pPeer->version + 1) {
+      sError("%s, last wal skip forward, ver:%" PRIu64 ", peer ver:%" PRIu64, pPeer->id, pHead->version,
+             pPeer->sversion);
+    } else {
+      sDebug("%s, last wal is forwarded, ver:%" PRIu64, pPeer->id, pHead->version);
+      int ret = taosWriteMsg(pPeer->syncFd, pHead, wsize);
+      if (ret != wsize) break;
+    }
+
     pPeer->sversion = pHead->version;
 
     bytes += wsize;
