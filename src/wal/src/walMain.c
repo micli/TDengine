@@ -233,15 +233,26 @@ int walRenew(void *handle) {
   return terrno;
 }
 
+void walResetVersion(void *handle, uint64_t version) {
+  SWal *pWal = handle;
+  if (pWal == NULL) return;
+
+  pWal->version = version;
+  wInfo("wal:%s, reset ver to %" PRIu64, pWal->name, version);
+}
+
 int walWrite(void *handle, SWalHead *pHead) {
   SWal *pWal = handle;
   if (pWal == NULL) return -1;
 
   terrno = 0;
 
-  // no wal  
+  // no wal
   if (pWal->level == TAOS_WAL_NOLOG) return 0;
-  if (pHead->version <= pWal->version) return 0;
+  if (pHead->version <= pWal->version) {
+    wError("wal:%s, failed to write ver:%" PRIu64 ", last ver:%" PRIu64, pWal->name, pHead->version, pWal->version);
+    return 0;
+  }
 
   pHead->signature = walSignature;
   taosCalcChecksumAppend(0, (uint8_t *)pHead, sizeof(SWalHead));

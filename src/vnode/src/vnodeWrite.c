@@ -98,7 +98,8 @@ int32_t vnodeProcessWrite(void *param1, int qtype, void *param2, void *item) {
   syncCode = syncForwardToPeer(pVnode->sync, pHead, item, qtype);
   if (syncCode < 0) {
     pVnode->version = lastVersion;
-    vError("vgId:%d, msgType:%s not processed, reason:%s, wal ver:%" PRIu64 " restore to last ver:%" PRIu64,
+    walResetVersion(pVnode->wal, lastVersion);
+    vError("vgId:%d, msgType:%s not processed, reason:%s, wal ver:%" PRIu64 " set to last ver:%" PRIu64,
            pVnode->vgId, taosMsg[pHead->msgType], tstrerror(syncCode), pHead->version, pVnode->version);
     return syncCode;
   }
