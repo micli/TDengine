@@ -267,7 +267,7 @@ static int syncRetrieveLastWal(SSyncPeer *pPeer, char *name, uint64_t fversion, 
       break;
     }
 
-    if (fversion > 0 && pHead->version > pPeer->sversion + 1) {
+    if (pHead->version > pPeer->sversion + 1) {
       sError("%s, last wal skip forward, ver:%" PRIu64 ", sver:%" PRIu64, pPeer->id, pHead->version, pPeer->sversion);
     } else {
       sDebug("%s, last wal is forwarded, ver:%" PRIu64, pPeer->id, pHead->version);
