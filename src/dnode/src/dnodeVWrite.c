@@ -244,6 +244,9 @@ static void *dnodeProcessWriteQueue(void *param) {
       }
 
       int32_t code = vnodeProcessWrite(pVnode, type, pHead, pRspRet);
+      dTrace("%p, wal msg:%s is processed in vwrite queue, version:%" PRIu64 ", result:%s", pHead,
+             taosMsg[pHead->msgType], pHead->version, tstrerror(code));
+
       if (pWrite) { 
         pWrite->rpcMsg.code = code;
         if (code <= 0) pWrite->processedCount = 1; 

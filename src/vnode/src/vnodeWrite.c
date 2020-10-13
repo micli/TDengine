@@ -71,7 +71,8 @@ int32_t vnodeProcessWrite(void *param1, int qtype, void *param2, void *item) {
     }
 
     if (pVnode->role != TAOS_SYNC_ROLE_MASTER) {
-      vDebug("vgId:%d, msgType:%s not processed, replica:%d role:%d", pVnode->vgId, taosMsg[pHead->msgType], pVnode->syncCfg.replica, pVnode->role);
+      vDebug("vgId:%d, msgType:%s not processed, replica:%d role:%s", pVnode->vgId, taosMsg[pHead->msgType],
+             pVnode->syncCfg.replica, syncRole[pVnode->role]);
       return TSDB_CODE_APP_NOT_READY;
     }
 
@@ -85,18 +86,24 @@ int32_t vnodeProcessWrite(void *param1, int qtype, void *param2, void *item) {
     if (pHead->version <= pVnode->version) return 0;
   }
 
+  int64_t lastVersion = pVnode->version;
   pVnode->version = pHead->version;
 
   // write into WAL
   code = walWrite(pVnode->wal, pHead);
   if (code < 0) return code;
 
-  // forward to peers, even it is WAL/FWD, it shall be called to update version in sync 
+  // forward to peers, even it is WAL/FWD, it shall be called to update version in sync
   int32_t syncCode = 0;
   syncCode = syncForwardToPeer(pVnode->sync, pHead, item, qtype);
-  if (syncCode < 0) return syncCode;
+  if (syncCode < 0) {
+    pVnode->version = lastVersion;
+    vError("vgId:%d, msgType:%s not processed, reason:%s, wal ver:%" PRIu64 " restore to last ver:%" PRIu64,
+           pVnode->vgId, taosMsg[pHead->msgType], tstrerror(syncCode), pHead->version, pVnode->version);
+    return syncCode;
+  }
 
-  // write data locally 
+  // write data locally
   code = (*vnodeProcessWriteMsgFp[pHead->msgType])(pVnode, pHead->cont, item);
   if (code < 0) return code;
 

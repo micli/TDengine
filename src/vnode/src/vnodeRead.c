@@ -59,8 +59,9 @@ int32_t vnodeProcessRead(void *param, SReadMsg *pReadMsg) {
 
   // TODO: Later, let slave to support query
   // if (pVnode->syncCfg.replica > 1 && pVnode->role != TAOS_SYNC_ROLE_MASTER) {
-  if (pVnode->role != TAOS_SYNC_ROLE_SLAVE && pVnode->role != TAOS_SYNC_ROLE_MASTER) { 
-    vDebug("vgId:%d, msgType:%s not processed, replica:%d role:%d", pVnode->vgId, taosMsg[msgType], pVnode->syncCfg.replica, pVnode->role);
+  if (pVnode->role != TAOS_SYNC_ROLE_SLAVE && pVnode->role != TAOS_SYNC_ROLE_MASTER) {
+    vDebug("vgId:%d, msgType:%s not processed, replica:%d role:%s", pVnode->vgId, taosMsg[msgType],
+           pVnode->syncCfg.replica, syncRole[pVnode->role]);
     return TSDB_CODE_APP_NOT_READY;
   }
 

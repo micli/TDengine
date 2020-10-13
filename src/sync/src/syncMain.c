@@ -341,18 +341,19 @@ int32_t syncForwardToPeer(void *param, void *data, void *mhandle, int qtype) {
         pPeer = pNode->peerInfo[i];
         syncRestartConnection(pPeer);
       }
+      return TSDB_CODE_SYN_INVALID_VERSION;
     } else {
       // always update version
       nodeVersion = pWalHead->version;
-      sDebug("vgId:%d, update version, replica:%d nodeRole:%d qtype:%d ver:%" PRIu64, pNode->vgId, pNode->replica,
-             nodeRole, qtype, pWalHead->version);
+      sDebug("vgId:%d, update version, replica:%d nodeRole:%s qtype:%d ver:%" PRIu64, pNode->vgId, pNode->replica,
+             syncRole[nodeRole], qtype, pWalHead->version);
+      return TSDB_CODE_SUCCESS;
     }
-    return 0;
   }
 
   nodeVersion = pWalHead->version;
-  sDebug("vgId:%d, forward will send, replica:%d nodeRole:%d qtype:%d ver:%" PRIu64, pNode->vgId, pNode->replica,
-         nodeRole, qtype, pWalHead->version);
+  sDebug("vgId:%d, forward will send, replica:%d nodeRole:%s qtype:%d ver:%" PRIu64, pNode->vgId, pNode->replica,
+         syncRole[nodeRole], qtype, pWalHead->version);
 
   // only pkt from RPC or CQ can be forwarded
   if (qtype != TAOS_QTYPE_RPC && qtype != TAOS_QTYPE_CQ) return 0;
