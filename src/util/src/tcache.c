@@ -267,7 +267,7 @@ static void incRefFn(void* ptNode) {
   assert(ret > 0);
 }
 
-void *taosCacheAcquireByKey(SCacheObj *pCacheObj, const void *key, size_t keyLen) {
+static void *taosCacheAcquireByKeyImp(SCacheObj *pCacheObj, const void *key, size_t keyLen, bool changeRef) {
   if (pCacheObj == NULL || pCacheObj->deleting == 1) {
     return NULL;
   }
@@ -283,15 +283,23 @@ void *taosCacheAcquireByKey(SCacheObj *pCacheObj, const void *key, size_t keyLen
   void* pData = (ptNode != NULL)? ptNode->data:NULL;
 
   if (pData != NULL) {
-    atomic_add_fetch_32(&pCacheObj->statistics.hitCount, 1);
+    if (changeRef) atomic_add_fetch_32(&pCacheObj->statistics.hitCount, 1);
     uDebug("cache:%s, key:%p, %p is retrieved from cache, refcnt:%d", pCacheObj->name, key, pData, T_REF_VAL_GET(ptNode));
   } else {
-    atomic_add_fetch_32(&pCacheObj->statistics.missCount, 1);
+    if (changeRef) atomic_add_fetch_32(&pCacheObj->statistics.missCount, 1);
     uDebug("cache:%s, key:%p, not in cache, retrieved failed", pCacheObj->name, key);
   }
 
   atomic_add_fetch_32(&pCacheObj->statistics.totalAccess, 1);
   return pData;
+}
+
+void *taosCacheAcquireByKey(SCacheObj *pCacheObj, const void *key, size_t keyLen) {
+  return taosCacheAcquireByKeyImp(pCacheObj, key, keyLen, true);
+}
+
+void *taosCacheGetByKey(SCacheObj *pCacheObj, const void *key, size_t keyLen) {
+  return taosCacheAcquireByKeyImp(pCacheObj, key, keyLen, false);
 }
 
 void *taosCacheAcquireByData(SCacheObj *pCacheObj, void *data) {

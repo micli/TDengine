@@ -236,10 +236,6 @@ int32_t vnodeOpen(int32_t vnode, char *rootDir) {
   pVnode->accessState = TSDB_VN_ALL_ACCCESS;
   tsem_init(&pVnode->sem, 0, 0);
 
-  pVnode->ppVnode = taosCachePut(tsDnodeVnodesCache, &pVnode->vgId, sizeof(int32_t), &pVnode, sizeof(SVnodeObj *), 8);
-  vDebug("vgId:%d, vnode is opened in %s, pVnode:%p data:%p", pVnode->vgId, rootDir, pVnode, pVnode->ppVnode);
-  assert(pVnode->ppVnode != NULL);
-
   int32_t code = vnodeReadCfg(pVnode);
   if (code != TSDB_CODE_SUCCESS) {
     vnodeCleanUp(pVnode);
@@ -342,6 +338,10 @@ int32_t vnodeOpen(int32_t vnode, char *rootDir) {
   pVnode->events = NULL;
   pVnode->status = TAOS_VN_STATUS_READY;
 
+  pVnode->ppVnode = taosCachePut(tsDnodeVnodesCache, &pVnode->vgId, sizeof(int32_t), &pVnode, sizeof(SVnodeObj *), 8);
+  vDebug("vgId:%d, vnode is opened in %s, pVnode:%p data:%p", pVnode->vgId, rootDir, pVnode, pVnode->ppVnode);
+  assert(pVnode->ppVnode != NULL);
+
   return TSDB_CODE_SUCCESS;
 }
 
@@ -361,17 +361,19 @@ void vnodeRelease(void *pVnodeRaw) {
   int32_t    vgId = pVnode->vgId;
 
   int32_t refCount = atomic_sub_fetch_32(&pVnode->refCount, 1);
-  assert(refCount >= 0);
-
-  void **ppVnode = pVnode->ppVnode;
-  taosCacheRelease(tsDnodeVnodesCache, (void **)(&ppVnode), false);
   vTrace("vgId:%d, release vnode, refCount:%d pVnode:%p data:%p", vgId, refCount, pVnode, pVnode->ppVnode);
+  assert(refCount >= 0);
 
   if (refCount > 0) {
     if (pVnode->status == TAOS_VN_STATUS_RESET && refCount == 2) {
       tsem_post(&pVnode->sem);
     }
     return;
+  }
+
+  void **ppVnode = pVnode->ppVnode;
+  if (ppVnode != NULL) {
+    taosCacheRelease(tsDnodeVnodesCache, (void **)(&ppVnode), false);
   }
 
   if (pVnode->qMgmt) {
@@ -433,7 +435,7 @@ void vnodeRelease(void *pVnodeRaw) {
 }
 
 void *vnodeAcquire(int32_t vgId) {
-  SVnodeObj **ppVnode = taosCacheAcquireByKey(tsDnodeVnodesCache, &vgId, sizeof(int32_t));
+  SVnodeObj **ppVnode = taosCacheGetByKey(tsDnodeVnodesCache, &vgId, sizeof(int32_t));
 
   if (ppVnode == NULL || *ppVnode == NULL) {
     terrno = TSDB_CODE_VND_INVALID_VGROUP_ID;
@@ -442,6 +444,12 @@ void *vnodeAcquire(int32_t vgId) {
   }
 
   SVnodeObj *pVnode = *ppVnode;
+  if (pVnode->refCount <= 0) {
+    terrno = TSDB_CODE_VND_INVALID_VGROUP_ID;
+    vDebug("vgId:%d, not exist for refCount is %d", vgId, pVnode->refCount);
+    return NULL;
+  }
+
   atomic_add_fetch_32(&pVnode->refCount, 1);
   vTrace("vgId:%d, get vnode, refCount:%d pVnode:%p data:%p", pVnode->vgId, pVnode->refCount, pVnode, pVnode->ppVnode);
 

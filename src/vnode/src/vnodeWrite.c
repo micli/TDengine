@@ -201,7 +201,7 @@ int vnodeWriteCqMsgToQueue(void *param, void *data, int type) {
   SWalHead *pWal = (SWalHead *)(pSync + 1);
   memcpy(pWal, pHead, size);
 
-  vnodeAcquire(pVnode->vgId);
+  atomic_add_fetch_32(&pVnode->refCount, 1);
   vTrace("CQ: vgId:%d, get vnode wqueue, refCount:%d pVnode:%p data:%p", pVnode->vgId, pVnode->refCount, pVnode,
          pVnode->ppVnode);
 
@@ -219,7 +219,7 @@ int vnodeWriteToQueue(void *param, void *data, int type) {
   SWalHead *pWal = (SWalHead *)taosAllocateQitem(size);
   memcpy(pWal, pHead, size);
 
-  vnodeAcquire(pVnode->vgId);
+  atomic_add_fetch_32(&pVnode->refCount, 1);
   vTrace("vgId:%d, get vnode wqueue, refCount:%d pVnode:%p data:%p", pVnode->vgId, pVnode->refCount, pVnode,
          pVnode->ppVnode);
 
