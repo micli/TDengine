@@ -50,6 +50,7 @@ typedef struct {
   void        *sync;
   void        *events;
   void        *cq;  // continuous query
+  void       **ppVnode;
   int32_t      cfgVersion;
   STsdbCfg     tsdbCfg;
   SSyncCfg     syncCfg;

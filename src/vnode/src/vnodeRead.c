@@ -74,7 +74,7 @@ static void vnodePutItemIntoReadQueue(SVnodeObj *pVnode, void **qhandle) {
   pRead->contLen = 0;
   pRead->rpcMsg.handle = NULL;
 
-  atomic_add_fetch_32(&pVnode->refCount, 1);
+  vnodeAcquire(pVnode->vgId);
 
   vDebug("QInfo:%p add to vread queue for exec query, msg:%p", *qhandle, pRead);
   taosWriteQitem(pVnode->rqueue, TAOS_QTYPE_QUERY, pRead);
