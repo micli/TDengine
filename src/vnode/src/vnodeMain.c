@@ -522,7 +522,10 @@ static void vnodeBuildVloadMsg(SVnodeObj *pVnode, SDMStatusMsg *pStatus) {
 int32_t vnodeGetVnodeList(int32_t vnodeList[], int32_t *numOfVnodes) {
   SHashMutableIterator *pIter = taosHashCreateIter(tsDnodeVnodesCache->pHashTable);
   while (taosHashIterNext(pIter)) {
-    SVnodeObj **pVnode = taosHashIterGet(pIter);
+    SCacheDataNode **pNode = taosHashIterGet(pIter);
+    if (pNode == NULL || *pNode == NULL) break;
+
+    SVnodeObj **pVnode = (SVnodeObj **)((*pNode)->data);
     if (pVnode == NULL) continue;
     if (*pVnode == NULL) continue;
 
@@ -544,7 +547,10 @@ void vnodeBuildStatusMsg(void *param) {
   SHashMutableIterator *pIter = taosHashCreateIter(tsDnodeVnodesCache->pHashTable);
 
   while (taosHashIterNext(pIter)) {
-    SVnodeObj **pVnode = taosHashIterGet(pIter);
+    SCacheDataNode **pNode = taosHashIterGet(pIter);
+    if (pNode == NULL || *pNode == NULL) break;
+
+    SVnodeObj **pVnode = (SVnodeObj **)((*pNode)->data);
     if (pVnode == NULL) continue;
     if (*pVnode == NULL) continue;
 
