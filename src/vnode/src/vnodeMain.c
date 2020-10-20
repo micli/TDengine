@@ -57,6 +57,14 @@ int     syncGetNodesRole(tsync_h shandle, SNodesRole * cfg) { return 0; }
 void    syncConfirmForward(tsync_h shandle, uint64_t version, int32_t code) {}
 #endif
 
+char* vnodeStatus[] = {
+  "init",
+  "ready",
+  "closing",
+  "updating",
+  "reset"
+};
+
 int32_t vnodeInitResources() {
   int code = syncInit();
   if (code != 0) return code;
