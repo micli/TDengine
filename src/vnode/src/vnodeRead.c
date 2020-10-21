@@ -80,12 +80,12 @@ int32_t vnodeProcessRead(void *param, SReadMsg *pRead) {
   if (code == TSDB_CODE_APP_NOT_READY && pRead->rpcMsg.msgType == TSDB_MSG_TYPE_QUERY) {
     // After the fetch request enters the vnode queue
     // If the vnode cannot provide services, the following operations are still required
-    // Or there will be a deadlock
+    // Or, there will be a deadlock
     void **qhandle = (void **)pRead->pCont;
     vError("QInfo:%p msg:%p will be killed for vstatus is %s", *qhandle, pRead, vnodeStatus[pVnode->status]);
 
-    qKillQuery(*qhandle);
-    qReleaseQInfo(pVnode->qMgmt, (void **)&qhandle, true);
+    // qKillQuery(*qhandle);
+    // qReleaseQInfo(pVnode->qMgmt, (void **)&qhandle, true);
     return TSDB_CODE_APP_NOT_READY;
   } else {
     return code;

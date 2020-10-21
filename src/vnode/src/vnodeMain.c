@@ -379,9 +379,15 @@ void vnodeRelease(void *pVnodeRaw) {
     return;
   }
 
+  vTrace("vgId:%d, vnode will be destroyed, refCount:%d pVnode:%p data:%p", vgId, refCount, pVnode, pVnode->ppVnode);
+
   void **ppVnode = pVnode->ppVnode;
+  SVnodeObj pTempVnode = *pVnode;
+  memset(pVnode, 0, sizeof(SVnodeObj));
+  pVnode = &pTempVnode;
+
   if (ppVnode != NULL) {
-    taosCacheRelease(tsDnodeVnodesCache, (void **)(&ppVnode), false);
+    taosCacheRelease(tsDnodeVnodesCache, (void **)(&ppVnode), true);
   }
 
   if (pVnode->qMgmt) {
@@ -436,9 +442,12 @@ void vnodeRelease(void *pVnodeRaw) {
   }
 
   tsem_destroy(&pVnode->sem);
-  free(pVnode);
 
-  int32_t count = taosHashGetSize(tsDnodeVnodesCache->pHashTable);
+  int32_t count = 0;
+  if (tsDnodeVnodesCache) {
+    count = taosHashGetSize(tsDnodeVnodesCache->pHashTable);
+  }
+
   vDebug("vgId:%d, vnode is released, vnodes:%d", vgId, count);
 }
 
@@ -1055,5 +1064,5 @@ PARSE_OVER:
 static void vnodeFreeVnodeObj(void *data) {
   SVnodeObj *pVnode = *(SVnodeObj **)data;
   vDebug("vgId:%d, vnode is destroyed, pVnode:%p data:%p", pVnode->vgId, pVnode, pVnode->ppVnode);
-  //taosTFree(pVnode);
+  taosTFree(pVnode);
 }
